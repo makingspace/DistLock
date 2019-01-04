@@ -79,11 +79,11 @@ class DistLockConsulInterface(object):
         except AttributeError:
             obj_class_name = str(obj)
 
-        try:
+        if hasattr(obj, 'uuid'):
             obj_identifier = obj.uuid
-        except AttributeError:
+        elif hasattr(obj, 'xid'):
             obj_identifier = obj.xid
-        except AttributeError:
+        else:
             obj_identifier = repr(obj)
 
         return '{}/v{}-{}-{}-{}'.format(
