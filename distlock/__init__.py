@@ -72,7 +72,7 @@ class DistLockConsulInterface(object):
 
     def get_key(self, obj, version=1):
         """
-        Best effort attempt at serializing the provided obj into standardized DistLock key.
+        Best effort attempt at serializing the provided obj into a standardized DistLock key.
         """
         try:
             obj_class_name = obj.__class__.__name__
@@ -107,6 +107,6 @@ class DistLockConsulInterface(object):
 
     def destroy_session(self, session_id):
         """
-        Manually destroy a Consul session.
+        Destroy a Consul session.
         """
         self.connection.session.destroy(session_id)
