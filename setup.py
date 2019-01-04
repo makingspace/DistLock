@@ -11,6 +11,7 @@ setup(
         'consul_kv'
     ],
     tests_require=[
+        'python-consul',
         'mock',
         'pytest',
     ]

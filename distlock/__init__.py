@@ -6,7 +6,7 @@ GLOBAL_PREFIX = 'distlock/key'
 
 class DistLockToken:
     """
-    An object dispensed by a DistLockConsulInterface's acquire() method
+    An object dispensed by a DistLockInterface's acquire() method
     that facilitates maintaining a lock-entry's state.
     """
     def __init__(self, key, acquired, session_id=None):
@@ -16,21 +16,35 @@ class DistLockToken:
 
 
 class DistLockConsulInterface(object):
+    """
+    Interface to achieve distributed locking leveraging Consul.
+    https://www.consul.io/docs/guides/semaphore.html
+    """
 
     DEFAULT_SESSION_TTL = 30
     DEFAULT_SESSION_LOCK_DELAY = 5
 
-    def __init__(self, consul_host, consul_port):
+    def __init__(self, consul_host, consul_port=8500, service_name=None):
+        self.service_name = service_name or 'unspecified-service'
         self.connection = consul.Consul(consul_host, consul_port, 'http')
 
     def acquire_on_obj(self, obj, **kwargs):
+        """
+        Convenience method that facilitates ease of use
+        when attempting to acquire a lock on a generic object.
+        """
         key = self.get_key(obj)
         return self.acquire(key, **kwargs)
 
     def acquire(self, key, session_id=None, wait_seconds=0):
+        """
+        Attempt to acquire a lock for the given key.
+        Utilize the provided session_id, or create one if not provided.
+        If not acquired, retry for as long as the client is willing to wait.
+        """
 
         if not session_id:
-            session_id = self._create_session()
+            session_id = self.create_session()
 
         acquired = self.connection.kv.put(key=key, value=None, acquire=session_id)
 
@@ -46,29 +60,37 @@ class DistLockConsulInterface(object):
         return DistLockToken(key=key, acquired=acquired, session_id=session_id)
 
     def release(self, key, session_id, destroy_session=True):
+        """
+        Relinquish the provided session's lock on the specified key.
+        Will destroy the session, by default.
+        """
 
         self.connection.kv.put(key=key, value=None, release=session_id)
 
         if destroy_session:
-            self._destroy_session(session_id)
+            self.destroy_session(session_id)
 
     def get_key(self, obj, version=1):
         """
-        Utility for clients to have
+        Best effort attempt at serializing the provided obj into standardized DistLock key.
         """
         try:
-            class_name = obj.__class__.__name__
+            obj_class_name = obj.__class__.__name__
         except AttributeError:
-            class_name = str(obj)
+            obj_class_name = str(obj)
 
         try:
+            obj_identifier = obj.uuid
+        except AttributeError:
             obj_identifier = obj.xid
         except AttributeError:
             obj_identifier = repr(obj)
 
-        return '{}/v{}-{}-{}'.format(GLOBAL_PREFIX, version, class_name, obj_identifier)
+        return '{}/v{}-{}-{}-{}'.format(
+            GLOBAL_PREFIX, version, self.service_name, obj_class_name, obj_identifier
+        )
 
-    def _create_session(self, session_params=None):
+    def create_session(self, session_params=None):
         """
         Creates a Consul session, and returns the session id.
         """
@@ -83,5 +105,8 @@ class DistLockConsulInterface(object):
 
         return self.connection.session.create(**session_params)
 
-    def _destroy_session(self, session_id):
+    def destroy_session(self, session_id):
+        """
+        Manually destroy a Consul session.
+        """
         self.connection.session.destroy(session_id)
