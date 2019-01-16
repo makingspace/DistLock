@@ -1,7 +1,22 @@
-import consul
+import contextlib
 import time
 
+import consul
+from six import string_types
+
+DEFAULT_VERSION = 1
 GLOBAL_PREFIX = 'distlock/key'
+
+
+class DistLockException(Exception):
+
+    def __init__(self, service_name, key, *args, **kwargs):
+        self.service_name = service_name
+        self.key = key
+        super(DistLockException, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        return 'Lock acquisition failed. Service: {} Key: {}'.format(self.service_name, self.key)
 
 
 class DistLockToken:
@@ -70,7 +85,7 @@ class DistLockConsulInterface(object):
         if destroy_session:
             self.destroy_session(session_id)
 
-    def get_key(self, obj, version=1):
+    def get_key(self, obj, version=DEFAULT_VERSION):
         """
         Best effort attempt at serializing the provided obj into a standardized DistLock key.
         """
@@ -84,7 +99,7 @@ class DistLockConsulInterface(object):
         elif hasattr(obj, 'xid'):
             obj_identifier = obj.xid
         else:
-            obj_identifier = repr(obj)
+            obj_identifier = obj if isinstance(obj, string_types) else repr(obj)
 
         return '{}/v{}-{}-{}-{}'.format(
             GLOBAL_PREFIX, version, self.service_name, obj_class_name, obj_identifier
@@ -110,3 +125,19 @@ class DistLockConsulInterface(object):
         Destroy a Consul session.
         """
         self.connection.session.destroy(session_id)
+
+    @contextlib.contextmanager
+    def lock_or_raise(self, obj, wait_seconds=0, version=DEFAULT_VERSION, exception=None):
+        key = self.get_key(obj, version=version)
+        exception = exception or DistLockException(self.service_name, key)
+
+        try:
+            lock_token = self.acquire(key, wait_seconds=wait_seconds)
+            if not lock_token.acquired:
+                raise exception
+        except Exception:
+            raise exception
+
+        yield lock_token
+
+        self.release(lock_token.key, lock_token.session_id)

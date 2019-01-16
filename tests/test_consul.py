@@ -26,16 +26,33 @@ def test_get_key(mock_obj, consul_lock):
     """
     Verify our key generation logic.
     """
-    v = 1  # version
-    objects = [mock_obj, 1, {'my_mock_key': 'my_mock-value'}]
-    for obj in objects:
-        obj_identifier = getattr(obj, 'xid', repr(obj))
-        expected_key = '{}/v{}-{}-{}-{}'.format(
-            GLOBAL_PREFIX, v, consul_lock.service_name, obj.__class__.__name__, obj_identifier
+    def make_key(obj_class_name, obj_repr):
+        return '{}/v1-{}-{}-{}'.format(
+            GLOBAL_PREFIX, consul_lock.service_name, obj_class_name, obj_repr
         )
-        actual_key = consul_lock.get_key(obj, version=v)
+
+    test_dict = {'my_mock_key': 'my_mock-value'}
+
+    test_cases = [
+        (mock_obj, make_key(MOCK_OBJ_CLASS_NAME, MOCK_OBJ_XID)),
+        (1, make_key('int', '1')),
+        (test_dict, make_key('dict', str(test_dict)))
+    ]
+
+    for obj, expected_key in test_cases:
+        actual_key = consul_lock.get_key(obj)
         assert expected_key == actual_key
-        v += 1
+
+
+def test_get_key_version_increment(consul_lock):
+    """
+    Verify our key generation logic when specifying a key version.
+    """
+    key = 'my-special-key'
+    v = 5
+    expected_key = '{}/v{}-{}-{}-{}'.format(GLOBAL_PREFIX, v, consul_lock.service_name, 'str', key)
+    actual_key = consul_lock.get_key(key, version=v)
+    assert expected_key == actual_key
 
 
 def test_acquire_on_obj(mock_obj, consul_lock):
