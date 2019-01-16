@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='DistLock',
+    name='dist-lock',
     version='0.1.0',
     packages=['distlock'],
     description='Distributed Locking Service',
