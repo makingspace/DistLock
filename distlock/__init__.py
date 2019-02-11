@@ -4,8 +4,6 @@ import time
 import consul
 from six import string_types
 
-from distlock import testing
-
 
 DEFAULT_VERSION = 1
 GLOBAL_PREFIX = 'distlock/key'
