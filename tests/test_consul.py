@@ -29,7 +29,7 @@ def test_get_key(mock_obj, consul_lock):
     def make_key(obj_class_name, obj_repr):
         return '{}/v1-{}-{}-{}'.format(
             GLOBAL_PREFIX, consul_lock.service_name, obj_class_name, obj_repr
-        )
+        ).lower()
 
     test_dict = {'my_mock_key': 'my_mock-value'}
 
@@ -68,6 +68,28 @@ def test_get_key_specifying_attributes(mock_obj, consul_lock):
         custom_obj_class,
         custom_obj_identifier
     )
+    actual_key = consul_lock.get_key(
+        mock_obj,
+        obj_class_name=custom_obj_class,
+        obj_identifier=custom_obj_identifier
+    )
+
+    assert expected_key == actual_key
+
+
+def test_get_key_non_case_specific(consul_lock):
+    """
+    Verify that the key generation logic provides a standardized lower-case key.
+    """
+    custom_obj_class = 'MY-SPECIFIC-UPPER-CLASS-NAME'
+    custom_obj_identifier = 'MY-SPECIFIC-UPPER-CASE-OBJ-IDENTIFIER'
+
+    expected_key = '{}/v1-{}-{}-{}'.format(
+        GLOBAL_PREFIX,
+        consul_lock.service_name,
+        custom_obj_class,
+        custom_obj_identifier
+    ).lower()
     actual_key = consul_lock.get_key(
         mock_obj,
         obj_class_name=custom_obj_class,

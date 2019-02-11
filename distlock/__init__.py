@@ -104,9 +104,15 @@ class DistLockConsulInterface(object):
             else:
                 obj_identifier = obj if isinstance(obj, string_types) else repr(obj)
 
-        return '{}/v{}-{}-{}-{}'.format(
-            GLOBAL_PREFIX, version, self.service_name, obj_class_name, obj_identifier
-        )
+        key = '{}/v{}-{}-{}-{}'.format(
+            GLOBAL_PREFIX,
+            version,
+            self.service_name,
+            obj_class_name,
+            obj_identifier
+        ).lower()
+
+        return key
 
     def create_session(self, session_params=None):
         """
