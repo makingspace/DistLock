@@ -86,21 +86,23 @@ class DistLockConsulInterface(object):
         if destroy_session:
             self.destroy_session(session_id)
 
-    def get_key(self, obj, version=DEFAULT_VERSION):
+    def get_key(self, obj, obj_class_name=None, obj_identifier=None, version=DEFAULT_VERSION):
         """
         Best effort attempt at serializing the provided obj into a standardized DistLock key.
         """
-        try:
-            obj_class_name = obj.__class__.__name__
-        except AttributeError:
-            obj_class_name = str(obj)
+        if not obj_class_name:
+            try:
+                obj_class_name = obj.__class__.__name__
+            except AttributeError:
+                obj_class_name = str(obj)
 
-        if hasattr(obj, 'uuid'):
-            obj_identifier = obj.uuid
-        elif hasattr(obj, 'xid'):
-            obj_identifier = obj.xid
-        else:
-            obj_identifier = obj if isinstance(obj, string_types) else repr(obj)
+        if not obj_identifier:
+            if hasattr(obj, 'uuid'):
+                obj_identifier = obj.uuid
+            elif hasattr(obj, 'xid'):
+                obj_identifier = obj.xid
+            else:
+                obj_identifier = obj if isinstance(obj, string_types) else repr(obj)
 
         return '{}/v{}-{}-{}-{}'.format(
             GLOBAL_PREFIX, version, self.service_name, obj_class_name, obj_identifier
@@ -128,8 +130,19 @@ class DistLockConsulInterface(object):
         self.connection.session.destroy(session_id)
 
     @contextlib.contextmanager
-    def lock_or_raise(self, obj, wait_seconds=0, version=DEFAULT_VERSION, exception=None):
-        key = self.get_key(obj, version=version)
+    def lock_or_raise(self, obj, wait_seconds=0, exception=None, key_params=None):
+        """
+        Attempt to acquire a lock on an object.
+        Utilize wait_seconds to specify how long you are willing to wait for a lock.
+        If a lock acquisition fails, raise DistLockException if an exception is not specified.
+
+        :param obj: Obj you want to acquire a lock on.
+        :param wait_seconds: The duration of time you are willing to wait for a lock.
+        :param exception: Custom exception you'd like raised if acquisition fails.
+        :param key_params: Dictionary of custom fields you'd like to pass into get_key().
+        """
+        key_params = key_params or {}
+        key = self.get_key(obj, **key_params)
         exception = exception or DistLockException(self.service_name, key)
 
         try:

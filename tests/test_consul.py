@@ -55,6 +55,28 @@ def test_get_key_version_increment(consul_lock):
     assert expected_key == actual_key
 
 
+def test_get_key_specifying_attributes(mock_obj, consul_lock):
+    """
+    Verify we can specify custom attributes when getting a key.
+    """
+    custom_obj_class = 'my-specific-class-name'
+    custom_obj_identifier = 'my-specific-obj-identifier'
+
+    expected_key = '{}/v1-{}-{}-{}'.format(
+        GLOBAL_PREFIX,
+        consul_lock.service_name,
+        custom_obj_class,
+        custom_obj_identifier
+    )
+    actual_key = consul_lock.get_key(
+        mock_obj,
+        obj_class_name=custom_obj_class,
+        obj_identifier=custom_obj_identifier
+    )
+
+    assert expected_key == actual_key
+
+
 def test_acquire_on_obj(mock_obj, consul_lock):
     """
     Verify acquire_on_obj() subsequently calls acquire() on the provided obj's key.
