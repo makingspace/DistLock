@@ -27,9 +27,7 @@ def test_get_key(mock_obj, consul_lock):
     Verify our key generation logic.
     """
     def make_key(obj_class_name, obj_repr):
-        return '{}/v1-{}-{}-{}'.format(
-            GLOBAL_PREFIX, consul_lock.service_name, obj_class_name, obj_repr
-        ).lower()
+        return '{}/v1-{}-{}'.format(GLOBAL_PREFIX, obj_class_name, obj_repr).lower()
 
     test_dict = {'my_mock_key': 'my_mock-value'}
 
@@ -50,7 +48,7 @@ def test_get_key_version_increment(consul_lock):
     """
     key = 'my-special-key'
     v = 5
-    expected_key = '{}/v{}-{}-{}-{}'.format(GLOBAL_PREFIX, v, consul_lock.service_name, 'str', key)
+    expected_key = '{}/v{}-{}-{}'.format(GLOBAL_PREFIX, v, 'str', key)
     actual_key = consul_lock.get_key(key, version=v)
     assert expected_key == actual_key
 
@@ -62,12 +60,7 @@ def test_get_key_specifying_attributes(mock_obj, consul_lock):
     custom_obj_class = 'my-specific-class-name'
     custom_obj_identifier = 'my-specific-obj-identifier'
 
-    expected_key = '{}/v1-{}-{}-{}'.format(
-        GLOBAL_PREFIX,
-        consul_lock.service_name,
-        custom_obj_class,
-        custom_obj_identifier
-    )
+    expected_key = '{}/v1-{}-{}'.format(GLOBAL_PREFIX, custom_obj_class, custom_obj_identifier)
     actual_key = consul_lock.get_key(
         mock_obj,
         obj_class_name=custom_obj_class,
@@ -84,9 +77,8 @@ def test_get_key_non_case_specific(consul_lock):
     custom_obj_class = 'MY-SPECIFIC-UPPER-CLASS-NAME'
     custom_obj_identifier = 'MY-SPECIFIC-UPPER-CASE-OBJ-IDENTIFIER'
 
-    expected_key = '{}/v1-{}-{}-{}'.format(
+    expected_key = '{}/v1-{}-{}'.format(
         GLOBAL_PREFIX,
-        consul_lock.service_name,
         custom_obj_class,
         custom_obj_identifier
     ).lower()

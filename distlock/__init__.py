@@ -104,10 +104,9 @@ class DistLockConsulInterface(object):
             else:
                 obj_identifier = obj if isinstance(obj, string_types) else repr(obj)
 
-        key = '{}/v{}-{}-{}-{}'.format(
+        key = '{}/v{}-{}-{}'.format(
             GLOBAL_PREFIX,
             version,
-            self.service_name,
             obj_class_name,
             obj_identifier
         ).lower()
