@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='dist-lock',
-    version='0.2.0',
+    version='0.3.0',
     packages=['distlock'],
     description='Distributed Locking Service',
     url='https://github.com/makingspace/Distlock',
