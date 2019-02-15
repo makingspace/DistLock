@@ -71,7 +71,7 @@ class DistLockConsulInterface(object):
                 if acquired:
                     break
                 else:
-                    time.sleep(float(1/3))
+                    time.sleep(float(1./3.))
 
         return DistLockToken(key=key, acquired=acquired, session_id=session_id)
 
